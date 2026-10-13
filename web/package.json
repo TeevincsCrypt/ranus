@@ -2,7 +2,7 @@
   "name": "ranus-web",
   "version": "1.0.0",
   "private": true,
-  "description": "RANUS web client — an Alexa+-style voice/chat assistant powered by an Amazon Bedrock agent that calls the RANUS MCP server",
+  "description": "RANUS web client \u2014 an Alexa+-style voice/chat assistant powered by an Amazon Bedrock agent that calls the RANUS MCP server",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -12,10 +12,13 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "^0.34.4",
     "@anthropic-ai/sdk": "^0.133.0",
+    "@aws-sdk/credential-provider-web-identity": "^3.972.80",
     "@modelcontextprotocol/sdk": "^1.32.1",
+    "@vercel/functions": "^3.9.11",
     "@wallet-standard/app": "^1.1.1",
     "@wallet-standard/base": "^1.1.1",
     "next": "16.4.0",
+    "ranus-mcp-server": "*",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",

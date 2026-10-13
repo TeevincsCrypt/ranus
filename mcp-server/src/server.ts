@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerActionTool } from "./tools/action.js";
-import { registerAllocationTool } from "./tools/allocation.js";
-import { registerBorrowTool } from "./tools/borrow.js";
-import { registerExplainTool } from "./tools/explain.js";
-import { registerPortfolioTools } from "./tools/portfolio.js";
-import { registerRiskTool } from "./tools/risk.js";
+import { registerActionTool } from "./tools/action";
+import { registerAllocationTool } from "./tools/allocation";
+import { registerBorrowTool } from "./tools/borrow";
+import { registerExplainTool } from "./tools/explain";
+import { registerPortfolioTools } from "./tools/portfolio";
+import { registerRiskTool } from "./tools/risk";
 
 export const SERVER_INFO = { name: "ranus", title: "RANUS — Dollar & Asset Intelligence", version: "1.0.0" };
 

@@ -1,21 +1,23 @@
-import { bedrockAuthMode, bedrockConfig } from "@/lib/agent";
-import { connectMcp, listMcpTools, MCP_URL } from "@/lib/mcp";
+import { accessCodeRequired } from "@/lib/access";
+import { bedrockConfig, resolveBedrockAuth } from "@/lib/agent";
+import { connectMcp, listMcpTools } from "@/lib/mcp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  let mcp: { ok: boolean; url: string; tools: string[]; error?: string } = { ok: false, url: MCP_URL, tools: [] };
+  let mcp: { ok: boolean; mode?: string; endpoint?: string; tools: string[]; error?: string } = { ok: false, tools: [] };
   try {
-    const client = await connectMcp();
+    const conn = await connectMcp();
     try {
-      mcp = { ok: true, url: MCP_URL, tools: (await listMcpTools(client)).map((t) => t.name) };
+      mcp = { ok: true, mode: conn.mode, endpoint: conn.endpoint, tools: (await listMcpTools(conn.client)).map((t) => t.name) };
     } finally {
-      await client.close().catch(() => undefined);
+      await conn.close();
     }
   } catch (err) {
     mcp.error = err instanceof Error ? err.message : String(err);
   }
+  const auth = resolveBedrockAuth();
   return Response.json({
     mcp,
     bedrock: {
@@ -23,7 +25,9 @@ export async function GET() {
       region: bedrockConfig.region,
       effort: bedrockConfig.effort,
       fallbackModel: bedrockConfig.fallbackModel,
-      auth: bedrockAuthMode(),
+      auth: auth.label,
+      configured: auth.configured,
     },
+    accessCodeRequired: accessCodeRequired(),
   });
 }

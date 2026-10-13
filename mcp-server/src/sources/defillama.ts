@@ -1,6 +1,6 @@
-import { config } from "../config.js";
-import { cached } from "../lib/cache.js";
-import { fetchJson } from "../lib/http.js";
+import { config } from "../config";
+import { cached } from "../lib/cache";
+import { fetchJson } from "../lib/http";
 
 /**
  * DefiLlama Yields API (https://yields.llama.fi/pools) — a free, public aggregator of

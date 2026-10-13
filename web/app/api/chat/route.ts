@@ -1,4 +1,5 @@
 import type { BetaMessageParam } from "@anthropic-ai/sdk/resources/beta/messages";
+import { hasAccess } from "@/lib/access";
 import { runAgent } from "@/lib/agent";
 import type { AgentEvent } from "@/lib/events";
 
@@ -13,6 +14,7 @@ interface ChatRequest {
 }
 
 export async function POST(req: Request) {
+  if (!hasAccess(req)) return Response.json({ error: "Access code required or incorrect.", code: "access_denied" }, { status: 401 });
   const body = (await req.json().catch(() => ({}))) as ChatRequest;
   const text = body.text?.trim();
   if (!text) return Response.json({ error: "Missing `text`." }, { status: 400 });

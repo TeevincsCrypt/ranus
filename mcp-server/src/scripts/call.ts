@@ -3,9 +3,10 @@
  *
  *   npm run call -w mcp-server -- simulate_borrow '{"collateral":"SOL","collateralAmount":10}'
  */
+import "../env";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { config } from "../config.js";
+import { config } from "../config";
 
 const [name, rawArgs = "{}"] = process.argv.slice(2);
 if (!name) {
@@ -13,7 +14,7 @@ if (!name) {
   process.exit(1);
 }
 
-const url = process.env.RANUS_MCP_URL ?? `http://${config.host}:${config.port}/mcp`;
+const url = process.env.RANUS_MCP_URL ?? "http://localhost:3000/mcp";
 const headers: Record<string, string> = config.authToken ? { Authorization: `Bearer ${config.authToken}` } : {};
 const client = new Client({ name: "ranus-cli", version: "1.0.0" });
 await client.connect(new StreamableHTTPClientTransport(new URL(url), { requestInit: { headers } }));

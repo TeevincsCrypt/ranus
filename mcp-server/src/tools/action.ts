@@ -1,13 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { fromBaseUnits, pct, round, toBaseUnits, tokenAmount, usd } from "../lib/format.js";
-import { getSwapQuote, JUPITER_SOURCE } from "../sources/jupiter.js";
-import { getKaminoMarketSnapshot, getKaminoObligations, KAMINO_SOURCE, pickReserve } from "../sources/kamino.js";
-import { SOL_MINT } from "../sources/registry.js";
-import { getWalletBalances, parseWallet, type WalletBalances } from "../sources/solana.js";
-import { resolveToken } from "../sources/tokens.js";
-import { borrowScenario } from "./borrow.js";
-import { handle } from "./common.js";
+import { fromBaseUnits, pct, round, toBaseUnits, tokenAmount, usd } from "../lib/format";
+import { getSwapQuote, JUPITER_SOURCE } from "../sources/jupiter";
+import { getKaminoMarketSnapshot, getKaminoObligations, KAMINO_SOURCE, pickReserve } from "../sources/kamino";
+import { SOL_MINT } from "../sources/registry";
+import { getWalletBalances, parseWallet, type WalletBalances } from "../sources/solana";
+import { resolveToken } from "../sources/tokens";
+import { borrowScenario } from "./borrow";
+import { handle } from "./common";
 
 interface Check {
   check: string;

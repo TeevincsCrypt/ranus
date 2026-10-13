@@ -24,8 +24,9 @@ interface UiMessage {
 }
 
 interface Status {
-  mcp: { ok: boolean; url: string; tools: string[]; error?: string };
-  bedrock: { model: string; region: string; effort: string; auth: string };
+  mcp: { ok: boolean; mode?: string; endpoint?: string; tools: string[]; error?: string };
+  bedrock: { model: string; region: string; effort: string; auth: string; configured: boolean };
+  accessCodeRequired: boolean;
 }
 
 const SUGGESTIONS = [
@@ -38,6 +39,7 @@ const SUGGESTIONS = [
 ];
 
 const WALLET_KEY = "ranus.wallet";
+const ACCESS_KEY = "ranus.accessCode";
 const newId = () => Math.random().toString(36).slice(2, 10);
 
 export function RanusApp() {
@@ -48,6 +50,8 @@ export function RanusApp() {
   const [busy, setBusy] = useState(false);
   const [speakReplies, setSpeakReplies] = useState(true);
   const [status, setStatus] = useState<Status | null>(null);
+  const [accessCode, setAccessCode] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sendRef = useRef<(text: string) => void>(() => undefined);
@@ -58,6 +62,7 @@ export function RanusApp() {
     try {
       const saved = localStorage.getItem(WALLET_KEY);
       if (saved) setWallet(saved);
+      setAccessCode(localStorage.getItem(ACCESS_KEY));
     } catch {
       // Storage unavailable: start without a remembered wallet.
     }
@@ -72,6 +77,16 @@ export function RanusApp() {
     try {
       if (address) localStorage.setItem(WALLET_KEY, address);
       else localStorage.removeItem(WALLET_KEY);
+    } catch {
+      // Ignore storage failures.
+    }
+  }, []);
+
+  const saveAccessCode = useCallback((code: string | null) => {
+    setAccessCode(code);
+    try {
+      if (code) localStorage.setItem(ACCESS_KEY, code);
+      else localStorage.removeItem(ACCESS_KEY);
     } catch {
       // Ignore storage failures.
     }
@@ -150,12 +165,13 @@ export function RanusApp() {
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(accessCode ? { "x-ranus-access-code": accessCode } : {}) },
           body: JSON.stringify({ text, wallet, history }),
           signal: controller.signal,
         });
         if (!res.ok || !res.body) {
           const body = await res.json().catch(() => ({}));
+          if (body.code === "access_denied") saveAccessCode(null);
           throw new Error(body.error ?? `HTTP ${res.status}`);
         }
         const reader = res.body.getReader();
@@ -188,7 +204,7 @@ export function RanusApp() {
         setBusy(false);
       }
     },
-    [busy, history, patch, speakReplies, speech, wallet],
+    [accessCode, busy, history, patch, saveAccessCode, speakReplies, speech, wallet],
   );
   sendRef.current = (t: string) => void send(t);
 
@@ -199,6 +215,7 @@ export function RanusApp() {
     setHistory([]);
   }
 
+  const needsCode = Boolean(status?.accessCodeRequired && !accessCode);
   const orbState = speech.listening ? "listening" : busy ? "thinking" : speech.speaking ? "speaking" : "idle";
 
   return (
@@ -214,11 +231,22 @@ export function RanusApp() {
           </div>
         </div>
         <div className="pills">
-          <span className={`pill ${status?.mcp.ok ? "ok" : status ? "bad" : ""}`} title={status?.mcp.error ?? status?.mcp.url}>
+          <span
+            className={`pill ${status?.mcp.ok ? "ok" : status ? "bad" : ""}`}
+            title={status?.mcp.error ?? `${status?.mcp.mode ?? ""} · public endpoint: /mcp`}
+          >
             MCP {status ? (status.mcp.ok ? `· ${status.mcp.tools.length} tools` : "· offline") : "· …"}
           </span>
-          <span className="pill" title={status ? `Auth: ${status.bedrock.auth} · effort ${status.bedrock.effort}` : undefined}>
-            Amazon Bedrock {status ? `· ${status.bedrock.model.replace(/^anthropic\./, "")} · ${status.bedrock.region}` : ""}
+          <span
+            className={`pill ${status && !status.bedrock.configured ? "bad" : ""}`}
+            title={status ? `Auth: ${status.bedrock.auth} · effort ${status.bedrock.effort}` : undefined}
+          >
+            Amazon Bedrock{" "}
+            {status
+              ? status.bedrock.configured
+                ? `· ${status.bedrock.model.replace(/^anthropic\./, "")} · ${status.bedrock.region}`
+                : "· not configured"
+              : ""}
           </span>
           <span className="pill live">Live data</span>
         </div>
@@ -245,7 +273,7 @@ export function RanusApp() {
                 </p>
                 <div className="suggestions">
                   {SUGGESTIONS.map((s) => (
-                    <button key={s} className="suggestion" onClick={() => void send(s)} disabled={busy}>
+                    <button key={s} className="suggestion" onClick={() => void send(s)} disabled={busy || needsCode}>
                       {s}
                     </button>
                   ))}
@@ -310,11 +338,34 @@ export function RanusApp() {
             )}
           </div>
 
+          {needsCode && (
+            <form
+              className="access-gate"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (codeInput.trim()) saveAccessCode(codeInput.trim());
+                setCodeInput("");
+              }}
+            >
+              <span>This RANUS deployment is protected. Enter the access code to chat (live panels work without it).</span>
+              <input
+                type="password"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value)}
+                placeholder="Access code"
+                aria-label="Access code"
+                autoComplete="off"
+              />
+              <button type="submit" className="btn" disabled={!codeInput.trim()}>
+                Unlock
+              </button>
+            </form>
+          )}
           <form
             className="composer"
             onSubmit={(e) => {
               e.preventDefault();
-              void send(input);
+              if (!needsCode) void send(input);
             }}
           >
             {speech.supported.listen && (
@@ -346,7 +397,7 @@ export function RanusApp() {
                 Stop
               </button>
             ) : (
-              <button type="submit" className="btn send" disabled={!input.trim()}>
+              <button type="submit" className="btn send" disabled={!input.trim() || needsCode}>
                 Ask
               </button>
             )}

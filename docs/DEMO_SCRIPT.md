@@ -1,7 +1,7 @@
 # RANUS — Demo Video Script (< 3 minutes)
 
 **Goal:** show a real wallet, real multi-step tool use against live sources, and a useful answer — in under three minutes.
-**Setup before recording:** `npm run dev` with Bedrock credentials in `.env`; Chrome (for voice); a wallet that holds some stablecoins and/or SOL (ideally one with a Kamino loan). Run `npm run smoke -- <WALLET>` once so caches are warm and you know every source is reachable. Never show your `.env`.
+**Setup before recording:** your Vercel deployment (or `npm run dev` locally) with Bedrock credentials configured; Chrome (for voice); a wallet that holds some stablecoins and/or SOL (ideally one with a Kamino loan). Run `npm run smoke -- <WALLET>` once so caches are warm and you know every source is reachable. Never show your `.env`.
 
 ---
 

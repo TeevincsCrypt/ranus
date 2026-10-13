@@ -7,10 +7,10 @@ import {
   TOKENIZED_TREASURIES,
   USD_STABLECOINS,
   type AssetClass,
-} from "./registry.js";
-import { getKaminoMarketSnapshot, getKaminoObligations, KAMINO_SOURCE, type KaminoObligationSnapshot } from "./kamino.js";
-import { getTokensByMint, JUPITER_SOURCE, type JupiterToken } from "./jupiter.js";
-import { getOnchainMetadata, getWalletBalances } from "./solana.js";
+} from "./registry";
+import { getKaminoMarketSnapshot, getKaminoObligations, KAMINO_SOURCE, type KaminoObligationSnapshot } from "./kamino";
+import { getTokensByMint, JUPITER_SOURCE, type JupiterToken } from "./jupiter";
+import { getOnchainMetadata, getWalletBalances } from "./solana";
 
 export interface Holding {
   mint: string;

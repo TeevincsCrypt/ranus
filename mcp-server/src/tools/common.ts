@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { errorMessage } from "../lib/format.js";
+import { errorMessage } from "../lib/format";
 
 export const walletSchema = z
   .string()

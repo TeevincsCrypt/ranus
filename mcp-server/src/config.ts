@@ -1,11 +1,3 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { config as loadEnv } from "dotenv";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-// One .env at the repo root is shared by the MCP server and the web app.
-loadEnv({ path: path.resolve(here, "../../.env"), quiet: true });
-
 function env(name: string, fallback?: string): string | undefined {
   const value = process.env[name]?.trim();
   return value ? value : fallback;

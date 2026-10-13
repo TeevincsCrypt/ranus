@@ -19,9 +19,13 @@ import { contextBlock, SYSTEM_PROMPT } from "./prompt";
  */
 
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+type MantleOptions = NonNullable<ConstructorParameters<typeof AnthropicBedrockMantle>[0]>;
+
+const onVercel = Boolean(process.env.VERCEL);
 
 export const bedrockConfig = {
-  region: process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-1",
+  // Vercel presets AWS_REGION to the function's own region, so BEDROCK_AWS_REGION wins when set.
+  region: process.env.BEDROCK_AWS_REGION ?? process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION ?? "us-east-1",
   model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-opus-5-5",
   // Used only if the primary model declines a request on policy grounds ("none" disables).
   fallbackModel: process.env.BEDROCK_FALLBACK_MODEL_ID ?? "anthropic.claude-opus-4-8",
@@ -29,12 +33,53 @@ export const bedrockConfig = {
   maxSteps: Number(process.env.RANUS_MAX_STEPS ?? 10),
 };
 
-export function bedrockAuthMode(): string {
-  if (process.env.AWS_BEARER_TOKEN_BEDROCK) return "Bedrock API key (AWS_BEARER_TOKEN_BEDROCK)";
-  if (process.env.AWS_PROFILE) return `AWS profile "${process.env.AWS_PROFILE}"`;
-  if (process.env.AWS_ACCESS_KEY_ID) return "AWS access keys (env)";
-  return "default AWS credential chain";
+interface BedrockAuth {
+  label: string;
+  configured: boolean;
+  options: Partial<MantleOptions>;
 }
+
+/**
+ * Bedrock credentials, in order of preference. On Vercel the runtime's own AWS_ACCESS_KEY_ID /
+ * AWS_SECRET_ACCESS_KEY variables are not usable AWS credentials, so RANUS reads its own names
+ * and never falls back to them there.
+ */
+export function resolveBedrockAuth(): BedrockAuth {
+  const bearer = process.env.AWS_BEARER_TOKEN_BEDROCK?.trim();
+  if (bearer) return { label: "Bedrock API key", configured: true, options: { apiKey: bearer } };
+
+  const roleArn = process.env.RANUS_AWS_ROLE_ARN?.trim();
+  if (roleArn) {
+    return {
+      label: `Vercel OIDC → ${roleArn.split("/").pop()}`,
+      configured: true,
+      options: {
+        providerChainResolver: async () => {
+          const { awsCredentialsProvider } = await import("@vercel/functions/oidc");
+          return awsCredentialsProvider({ roleArn }) as unknown as Awaited<ReturnType<NonNullable<MantleOptions["providerChainResolver"]>>>;
+        },
+      },
+    };
+  }
+
+  const accessKey = process.env.RANUS_AWS_ACCESS_KEY_ID?.trim();
+  const secretKey = process.env.RANUS_AWS_SECRET_ACCESS_KEY?.trim();
+  if (accessKey && secretKey) {
+    return {
+      label: "IAM access keys (RANUS_AWS_*)",
+      configured: true,
+      options: { awsAccessKey: accessKey, awsSecretAccessKey: secretKey, awsSessionToken: process.env.RANUS_AWS_SESSION_TOKEN?.trim() || null },
+    };
+  }
+
+  if (onVercel) return { label: "not configured", configured: false, options: {} };
+  if (process.env.AWS_PROFILE) return { label: `AWS profile "${process.env.AWS_PROFILE}"`, configured: true, options: {} };
+  if (process.env.AWS_ACCESS_KEY_ID) return { label: "AWS access keys (env)", configured: true, options: {} };
+  return { label: "default AWS credential chain", configured: true, options: {} };
+}
+
+const VERCEL_AUTH_HELP =
+  "On Vercel, set AWS_BEARER_TOKEN_BEDROCK (Bedrock API key), RANUS_AWS_ROLE_ARN (Vercel OIDC), or RANUS_AWS_ACCESS_KEY_ID + RANUS_AWS_SECRET_ACCESS_KEY in the project's environment variables, then redeploy.";
 
 let bedrock: AnthropicBedrockMantle | null = null;
 function getBedrock(): AnthropicBedrockMantle {
@@ -42,6 +87,7 @@ function getBedrock(): AnthropicBedrockMantle {
     const fallback = bedrockConfig.fallbackModel;
     bedrock = new AnthropicBedrockMantle({
       awsRegion: bedrockConfig.region,
+      ...resolveBedrockAuth().options,
       middleware: fallback && fallback !== "none" ? [betaRefusalFallbackMiddleware([{ model: fallback }])] : [],
     });
   }
@@ -74,10 +120,10 @@ function withHistoryBreakpoint(messages: BetaMessageParam[]): BetaMessageParam[]
 
 function friendlyError(err: unknown): string {
   if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) {
-    return `Amazon Bedrock rejected the request (${err.status}). Check your AWS credentials (${bedrockAuthMode()}) and that model access for ${bedrockConfig.model} is enabled in ${bedrockConfig.region}.`;
+    return `Amazon Bedrock rejected the request (${err.status}). Check your credentials (${resolveBedrockAuth().label}) and that model access for ${bedrockConfig.model} is enabled in ${bedrockConfig.region}.${onVercel ? ` ${VERCEL_AUTH_HELP}` : ""}`;
   }
   if (err instanceof Anthropic.NotFoundError) {
-    return `Model ${bedrockConfig.model} was not found in ${bedrockConfig.region}. Set BEDROCK_MODEL_ID / AWS_REGION to a model your account can use.`;
+    return `Model ${bedrockConfig.model} was not found in ${bedrockConfig.region}. Set BEDROCK_MODEL_ID / BEDROCK_AWS_REGION to a model your account can use.`;
   }
   if (err instanceof Anthropic.RateLimitError) return "Amazon Bedrock is throttling requests right now — please try again in a moment.";
   if (err instanceof Anthropic.APIConnectionError) return `Could not reach Amazon Bedrock in ${bedrockConfig.region}: ${err.message}`;
@@ -97,6 +143,10 @@ export interface RunAgentInput {
 }
 
 export async function runAgent({ history, text, wallet, emit, signal }: RunAgentInput): Promise<void> {
+  if (!resolveBedrockAuth().configured) {
+    emit({ type: "error", message: `Amazon Bedrock credentials are not configured. ${VERCEL_AUTH_HELP}` });
+    return;
+  }
   emit({ type: "status", message: "Connecting to RANUS MCP server…" });
   let mcp;
   try {
@@ -107,7 +157,7 @@ export async function runAgent({ history, text, wallet, emit, signal }: RunAgent
   }
 
   try {
-    const tools: BetaTool[] = (await listMcpTools(mcp)).map((t) => {
+    const tools: BetaTool[] = (await listMcpTools(mcp.client)).map((t) => {
       // MCP schemas carry a `$schema` dialect marker; the Messages API only needs the schema itself.
       const { $schema: _dialect, ...schema } = t.inputSchema as Record<string, unknown>;
       return { name: t.name, description: t.description ?? t.title ?? t.name, input_schema: schema as BetaTool["input_schema"] };
@@ -173,7 +223,7 @@ export async function runAgent({ history, text, wallet, emit, signal }: RunAgent
         toolUses.map(async (call) => {
           emit({ type: "tool_call", id: call.id, name: call.name, input: call.input, step });
           const started = Date.now();
-          const outcome = await callMcpTool(mcp, call.name, (call.input ?? {}) as Record<string, unknown>);
+          const outcome = await callMcpTool(mcp.client, call.name, (call.input ?? {}) as Record<string, unknown>);
           emit({
             type: "tool_result",
             id: call.id,
@@ -200,6 +250,6 @@ export async function runAgent({ history, text, wallet, emit, signal }: RunAgent
     if (signal?.aborted) return;
     emit({ type: "error", message: friendlyError(err) });
   } finally {
-    await mcp.close().catch(() => undefined);
+    await mcp.close();
   }
 }

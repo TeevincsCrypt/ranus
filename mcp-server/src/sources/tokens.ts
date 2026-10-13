@@ -1,10 +1,10 @@
 import { isAddress, type Address } from "@solana/kit";
-import { cached } from "../lib/cache.js";
-import { UpstreamError } from "../lib/http.js";
-import { getKaminoMarketSnapshot } from "./kamino.js";
-import { searchTokens } from "./jupiter.js";
-import { resolveKnownSymbol, SOL_MINT } from "./registry.js";
-import { rpc } from "./solana.js";
+import { cached } from "../lib/cache";
+import { UpstreamError } from "../lib/http";
+import { getKaminoMarketSnapshot } from "./kamino";
+import { searchTokens } from "./jupiter";
+import { resolveKnownSymbol, SOL_MINT } from "./registry";
+import { rpc } from "./solana";
 
 export interface ResolvedToken {
   mint: string;

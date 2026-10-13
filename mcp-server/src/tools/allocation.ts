@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { errorMessage, pct, round, usd } from "../lib/format.js";
-import { getSolanaLstPools, poolUrl, DEFILLAMA_SOURCE } from "../sources/defillama.js";
-import { getKaminoMarketSnapshot, KAMINO_SOURCE } from "../sources/kamino.js";
-import { getStockQuotes, getTokenizedTreasuries, kaminoReserveToOption, kaminoStableReserves } from "../sources/markets.js";
-import { buildPortfolio } from "../sources/portfolio.js";
-import { parseWallet } from "../sources/solana.js";
-import { handle, READ_ONLY_ANNOTATIONS } from "./common.js";
+import { errorMessage, pct, round, usd } from "../lib/format";
+import { getSolanaLstPools, poolUrl, DEFILLAMA_SOURCE } from "../sources/defillama";
+import { getKaminoMarketSnapshot, KAMINO_SOURCE } from "../sources/kamino";
+import { getStockQuotes, getTokenizedTreasuries, kaminoReserveToOption, kaminoStableReserves } from "../sources/markets";
+import { buildPortfolio } from "../sources/portfolio";
+import { parseWallet } from "../sources/solana";
+import { handle, READ_ONLY_ANNOTATIONS } from "./common";
 
 type Profile = "conservative" | "balanced" | "growth";
 type Bucket = "cash_buffer" | "stablecoin_lending" | "tokenized_treasuries" | "liquid_staked_sol" | "tokenized_stocks";

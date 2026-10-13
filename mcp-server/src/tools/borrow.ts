@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { pct, round, tokenAmount, usd } from "../lib/format.js";
+import { pct, round, tokenAmount, usd } from "../lib/format";
 import {
   getKaminoMarketSnapshot,
   getKaminoObligations,
@@ -9,11 +9,11 @@ import {
   type KaminoMarketSnapshot,
   type KaminoObligationSnapshot,
   type KaminoReserveSnapshot,
-} from "../sources/kamino.js";
-import { USD_STABLECOINS } from "../sources/registry.js";
-import { getWalletBalances, parseWallet } from "../sources/solana.js";
-import { resolveToken } from "../sources/tokens.js";
-import { handle, READ_ONLY_ANNOTATIONS } from "./common.js";
+} from "../sources/kamino";
+import { USD_STABLECOINS } from "../sources/registry";
+import { getWalletBalances, parseWallet } from "../sources/solana";
+import { resolveToken } from "../sources/tokens";
+import { handle, READ_ONLY_ANNOTATIONS } from "./common";
 
 export interface BorrowScenarioInput {
   collateral: KaminoReserveSnapshot;

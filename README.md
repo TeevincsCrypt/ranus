@@ -16,6 +16,7 @@ Ask *"What's the safest way to hold my dollars right now?"* and RANUS will read 
 - [What it does](#what-it-does)
 - [Architecture](#architecture)
 - [Quick start (local)](#quick-start-local)
+- [Deploy on Vercel](#deploy-on-vercel)
 - [API keys, AWS access and wallet connection](#api-keys-aws-access-and-wallet-connection)
 - [The MCP server and its real data sources](#the-mcp-server-and-its-real-data-sources)
 - [How Amazon Bedrock is used](#how-amazon-bedrock-is-used)
@@ -53,42 +54,36 @@ Ask *"What's the safest way to hold my dollars right now?"* and RANUS will read 
 
 ```mermaid
 flowchart LR
-  subgraph Browser["Web client — simulated Alexa+ (Next.js)"]
-    UI[Chat + voice<br/>Web Speech API]
-    WP[Wallet panel<br/>Wallet Standard, read-only]
+  subgraph Browser["Browser — simulated Alexa+ client"]
+    UI["Chat + voice<br/>Web Speech API"]
+    WP["Wallet & yield panels<br/>Wallet Standard, read-only"]
   end
 
-  subgraph Next["Next.js server"]
-    AG["RANUS agent loop<br/>(@anthropic-ai/bedrock-sdk)"]
-    MC[MCP client<br/>Streamable HTTP]
+  subgraph App["Next.js app — local or Vercel"]
+    AG["RANUS agent loop<br/>/api/chat · @anthropic-ai/bedrock-sdk"]
+    subgraph MCP["RANUS MCP server (ranus-mcp-server)"]
+      T["7 read-only tools<br/>portfolio · market · risk · allocation<br/>borrow · explain · prepare_action"]
+    end
+    EP["/mcp<br/>Streamable HTTP, stateless"]
   end
 
+  EXT["Alexa+ · MCP Inspector<br/>any MCP host"]
   BR[("Amazon Bedrock<br/>Claude Opus 5.5<br/>bedrock-mantle endpoint")]
-
-  subgraph MCP["RANUS MCP server (Node + TypeScript)<br/>POST /mcp — Streamable HTTP, stateless"]
-    T1[get_portfolio_summary]
-    T2[get_market_snapshot]
-    T3[analyze_risk]
-    T4[suggest_allocation]
-    T5[simulate_borrow]
-    T6[explain_concept]
-    T7[prepare_action]
-  end
-
   RPC[(Solana RPC)]
-  KAM[(Kamino Lend<br/>on-chain via klend-sdk)]
-  JUP[(Jupiter API<br/>Tokens · Price · Swap V2)]
+  KAM[("Kamino Lend<br/>on-chain via klend-sdk")]
+  JUP[("Jupiter API<br/>Tokens · Price · Swap V2")]
   LL[(DefiLlama Yields)]
 
-  UI -- SSE stream --> AG
-  WP -- direct tool calls --> MC
+  UI -- "SSE stream" --> AG
+  WP -- "/api/tools" --> MCP
   AG <-->|"messages, tool_use, tool_result"| BR
-  AG --> MC --> MCP
+  AG -- "MCP (in-process transport)" --> MCP
+  EXT -- "MCP over HTTPS" --> EP --> MCP
   MCP --> RPC & KAM & JUP & LL
 ```
 
-- **The MCP server is the integration point.** It is a standalone Model Context Protocol server over **Streamable HTTP** (stateless, horizontally scalable, optional bearer auth, DNS-rebinding protection). Any MCP host — Alexa+, Claude, the MCP Inspector, or the included web client — can use it.
-- **The agent** runs in the Next.js server: Claude on Amazon Bedrock receives the MCP tools as tool definitions, decides which to call (often several in parallel), RANUS executes them over MCP, feeds results back, and loops until Claude has an answer.
+- **The MCP server is the integration point.** `ranus-mcp-server` is a Model Context Protocol server whose tools call only live sources. The Next.js app serves it at **`/mcp`** over **Streamable HTTP** (stateless, so it runs on serverless functions; optional bearer auth), so any MCP host — Alexa+, Claude, the MCP Inspector — can connect to `https://<your-app>/mcp`. The same package also runs as a standalone Node server (`npm run mcp:standalone`, port 8787).
+- **The agent** runs in the Next.js server: Claude on Amazon Bedrock receives the MCP tools as tool definitions, decides which to call (often several in parallel), RANUS executes them over MCP, feeds results back, and loops until Claude has an answer. It talks to the same MCP server through an in-process MCP transport (no extra network hop; set `RANUS_MCP_URL` to use a remote MCP server over HTTP instead).
 - **The browser** never sees credentials. It receives a stream of events (reasoning summary, tool calls, tool results, answer text) and renders them live.
 
 ---
@@ -101,20 +96,50 @@ flowchart LR
 git clone <this repo> ranus && cd ranus
 npm install
 cp .env.example .env        # then fill in AWS auth (see next section)
-npm run dev                 # starts the MCP server (:8787) and the web app (:3000)
+npm run dev                 # web app on :3000, MCP server at http://localhost:3000/mcp
 ```
 
 Open **http://localhost:3000**, connect a wallet or paste a Solana address, and ask a question.
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | MCP server (watch mode) + Next.js dev server |
-| `npm run build && npm start` | Production build of the web app + both servers |
+| `npm run dev` | Next.js dev server: UI, Bedrock agent and the MCP endpoint `/mcp` |
+| `npm run build && npm start` | Production build and server |
 | `npm run typecheck` | Type-checks both packages |
-| `npm run smoke -- <WALLET>` | Calls every MCP tool over HTTP against live data (MCP server must be running) |
+| `npm run smoke -- <WALLET>` | Calls every MCP tool over Streamable HTTP against live data (defaults to `http://localhost:3000/mcp`; set `RANUS_MCP_URL` to test a deployment) |
 | `npm run call -w mcp-server -- <tool> '<json>'` | Calls one MCP tool and prints its JSON result |
+| `npm run mcp:standalone` | Optional: the MCP server on its own (Express, `http://127.0.0.1:8787/mcp`) |
 
-The MCP server alone needs **no keys at all** — the wallet panel and live-yields panel work without AWS. Only the chat agent needs Bedrock.
+The MCP tools need **no keys at all** — the wallet panel and live-yields panel work without AWS. Only the chat agent needs Bedrock.
+
+---
+
+## Deploy on Vercel
+
+RANUS deploys to Vercel as **one project**: the UI, the Bedrock agent (`/api/chat`, streaming) and the public MCP endpoint (`/mcp`) all run as Vercel Functions.
+
+1. **Import the repo** in Vercel and set **Root Directory = `web`**. Leave the framework (Next.js) and the build/install commands at their defaults — npm workspaces install from the repo root, and *Include files outside the Root Directory* (on by default) lets the build compile `../mcp-server`.
+2. **Environment variables** (Project → Settings → Environment Variables):
+
+   | Variable | Required | Notes |
+   |---|---|---|
+   | `AWS_BEARER_TOKEN_BEDROCK` | one auth option | Simplest: a Bedrock bearer token. |
+   | `RANUS_AWS_ROLE_ARN` | one auth option | Most secure: no stored AWS keys. Enable **OIDC Federation** in the Vercel project, add Vercel as an IAM OIDC identity provider in AWS, and create a role it can assume with `bedrock-mantle:CreateInference` (see [Vercel's AWS OIDC guide](https://vercel.com/docs/oidc/aws)). |
+   | `RANUS_AWS_ACCESS_KEY_ID` + `RANUS_AWS_SECRET_ACCESS_KEY` | one auth option | IAM user keys. **Don't use `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` on Vercel** — the function runtime presets those names with values that aren't usable AWS credentials, so RANUS ignores them there. |
+   | `BEDROCK_AWS_REGION` | recommended | e.g. `us-east-1`. Vercel presets `AWS_REGION` to the function's own region, so RANUS reads this first. |
+   | `BEDROCK_MODEL_ID` | optional | Default `anthropic.claude-opus-5-5`; use `anthropic.claude-opus-4-8` if your account lacks Opus 5.5 access. |
+   | `SOLANA_RPC_URL` | **strongly recommended** | A free Helius/Triton/QuickNode URL. Vercel's outbound IPs are shared, and the public RPC rate-limits them hard. |
+   | `JUPITER_API_KEY` | **strongly recommended** | Free key from [developers.jup.ag/portal](https://developers.jup.ag/portal); keyless limits are per IP, which Vercel functions share. |
+   | `RANUS_ACCESS_CODE` | recommended for public URLs | When set, chatting requires this code (the UI asks once). Live panels and `/mcp` stay open. |
+   | `RANUS_MCP_TOKEN` | optional | Requires `Authorization: Bearer <token>` on `/mcp`. |
+
+3. **Deploy.** Open the deployment, check the top bar (**MCP · 7 tools**, **Amazon Bedrock · model · region**), then verify the MCP endpoint from your machine:
+
+   ```bash
+   RANUS_MCP_URL=https://<your-app>.vercel.app/mcp npm run smoke -- <WALLET>
+   ```
+
+Function limits: `/api/chat` sets `maxDuration = 300` s (the Hobby maximum; ample for a multi-step answer); `/mcp` and `/api/tools` use 60 s. Each function bundles to roughly 25 MB. The MCP endpoint is stateless, so cold starts and scaling need no session affinity.
 
 ---
 
@@ -125,11 +150,12 @@ All configuration lives in one `.env` at the repo root (see [`.env.example`](.en
 ### Amazon Bedrock (required for chat)
 
 1. In the AWS console open **Amazon Bedrock → Model access** and make sure your account can use **Claude Opus 5.5** (`anthropic.claude-opus-5-5`) in your region. If it isn't available to your account yet, set `BEDROCK_MODEL_ID=anthropic.claude-opus-4-8` (open to all Bedrock customers) — no code changes needed.
-2. Authenticate with **one** of:
+2. Authenticate with **one** of (checked in this order):
    - **Bedrock bearer token** — mint one with AWS's `aws-bedrock-token-generator` and set `AWS_BEARER_TOKEN_BEDROCK`.
-   - **IAM credentials** — `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (+ `AWS_SESSION_TOKEN` for temporary creds) for a principal allowed `bedrock-mantle:CreateInference` on the model.
-   - **AWS profile / SSO** — set `AWS_PROFILE` (or rely on the default credential chain).
-3. Set `AWS_REGION` (default `us-east-1`; Claude in Amazon Bedrock is available in many regions).
+   - **Vercel OIDC role** — `RANUS_AWS_ROLE_ARN` (Vercel deployments only; see [Deploy on Vercel](#deploy-on-vercel)).
+   - **IAM keys under RANUS names** — `RANUS_AWS_ACCESS_KEY_ID` / `RANUS_AWS_SECRET_ACCESS_KEY` (+ `RANUS_AWS_SESSION_TOKEN`) for a principal allowed `bedrock-mantle:CreateInference` on the model. Works everywhere, including Vercel.
+   - **Local only:** standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`/SSO, or the default AWS credential chain.
+3. Set `BEDROCK_AWS_REGION` (default: `AWS_REGION`, else `us-east-1`; Claude in Amazon Bedrock is available in many regions).
 
 The top bar shows the configured model/region and whether the MCP server is connected. Auth or model-access problems are shown in the chat with a precise fix.
 
@@ -151,10 +177,11 @@ The top bar shows the configured model/region and whether the MCP server is conn
 
 ## The MCP server and its real data sources
 
-`mcp-server/` — TypeScript + Node.js, `@modelcontextprotocol/sdk` (`McpServer`, `StreamableHTTPServerTransport`), zod-validated input schemas, read-only tool annotations, and MCP-level errors (`isError`) whenever a live source fails.
+`mcp-server/` — TypeScript + Node.js, `@modelcontextprotocol/sdk` (`McpServer`, Streamable HTTP transports), zod-validated input schemas, read-only tool annotations, and MCP-level errors (`isError`) whenever a live source fails.
 
-- Endpoint: `POST http://127.0.0.1:8787/mcp` (stateless Streamable HTTP; `GET /health` for status)
-- Inspect it: `npx @modelcontextprotocol/inspector` → Transport *Streamable HTTP* → URL above.
+- Endpoint: `POST https://<your-app>/mcp` — or `http://localhost:3000/mcp` locally (stateless Streamable HTTP, served by `web/app/api/mcp/route.ts`).
+- Standalone alternative: `npm run mcp:standalone` → `POST http://127.0.0.1:8787/mcp` (Express, DNS-rebinding protection, `GET /health`).
+- Inspect it: `npx @modelcontextprotocol/inspector` → Transport *Streamable HTTP* → one of the URLs above.
 - Optional auth: set `RANUS_MCP_TOKEN` to require `Authorization: Bearer <token>`.
 
 ### Tools
@@ -198,7 +225,7 @@ If a bucket's live data is unavailable, its weight is moved to a safer bucket an
 
 Amazon Bedrock powers all of RANUS's reasoning and tool calling (`web/lib/agent.ts`):
 
-- **Endpoint & SDK:** Claude in Amazon Bedrock's Messages API (`https://bedrock-mantle.{region}.api.aws/anthropic/v1/messages`) through Anthropic's official **`AnthropicBedrockMantle`** client from `@anthropic-ai/bedrock-sdk`, with SigV4 or Bedrock bearer-token auth.
+- **Endpoint & SDK:** Claude in Amazon Bedrock's Messages API (`https://bedrock-mantle.{region}.api.aws/anthropic/v1/messages`) through Anthropic's official **`AnthropicBedrockMantle`** client from `@anthropic-ai/bedrock-sdk`, with SigV4 (IAM keys, or short-lived credentials from a Vercel OIDC role) or Bedrock bearer-token auth.
 - **Model:** `anthropic.claude-opus-5-5` by default (configurable).
 - **MCP → Bedrock tools:** at the start of each turn the agent lists the RANUS MCP server's tools and passes their JSON Schemas to Bedrock as tool definitions.
 - **Multi-step agent loop:** Claude decides which tools to call; RANUS executes all of a step's `tool_use` blocks **in parallel** over MCP, returns every `tool_result` in one message, and repeats (up to `RANUS_MAX_STEPS`, with a forced final answer at the cap).
@@ -235,6 +262,8 @@ npm run call -w mcp-server -- simulate_borrow '{"collateral":"SOL","collateralAm
 npm run call -w mcp-server -- get_market_snapshot '{"sections":["dollar_yields","tokenized_treasuries"]}'
 ```
 
+Against a deployment: `RANUS_MCP_URL=https://<your-app>.vercel.app/mcp npm run smoke -- <WALLET>`.
+
 Each result carries `asOf` (and a Solana `slot` where relevant) plus `sources` and `warnings`, so you can cross-check numbers against [app.kamino.finance](https://app.kamino.finance), [jup.ag](https://jup.ag) or [solscan.io](https://solscan.io).
 
 ---
@@ -250,8 +279,8 @@ Each result carries `asOf` (and a Solana `slot` where relevant) plus `sources` a
 
 - RANUS is read-only: no private keys, no signing, no transaction submission. Wallet connection shares only a public address.
 - AWS and API credentials are read server-side from `.env` and never reach the browser.
-- The web app is designed to run locally. If you deploy it, put authentication in front of it — `/api/chat` spends your Bedrock quota.
-- When exposing the MCP server beyond localhost, set `RANUS_MCP_TOKEN` (bearer auth) and bind `RANUS_MCP_HOST` deliberately; on localhost it applies DNS-rebinding protection automatically.
+- `/api/chat` spends your Bedrock quota. On a public deployment set `RANUS_ACCESS_CODE` (and share the code with judges), or use Vercel's deployment protection.
+- `/mcp` is read-only but uses your RPC/Jupiter quota; set `RANUS_MCP_TOKEN` to require a bearer token. The standalone server additionally applies DNS-rebinding protection on localhost.
 
 ---
 
@@ -260,20 +289,22 @@ Each result carries `asOf` (and a Solana `slot` where relevant) plus `sources` a
 ```
 ranus/
 ├── .env.example            # all configuration, documented
-├── mcp-server/             # RANUS MCP server (Streamable HTTP)
+├── mcp-server/             # ranus-mcp-server: the MCP server package
 │   └── src/
-│       ├── index.ts        # Express app, /mcp (stateless), /health, bearer auth
-│       ├── server.ts       # McpServer + tool registration
+│       ├── server.ts       # createRanusServer(): McpServer + tool registration (imported by web)
+│       ├── index.ts        # optional standalone Express server: /mcp (stateless), /health
 │       ├── sources/        # live data: solana, kamino, jupiter, defillama, portfolio, markets, tokens, registry
 │       ├── tools/          # the 7 MCP tools
 │       ├── lib/            # fetch w/ retries, TTL cache + rate limiter, formatting
 │       └── scripts/        # smoke test + single-tool CLI
-├── web/                    # Next.js Alexa+-style client + Bedrock agent
+├── web/                    # Next.js app (deploy this on Vercel, Root Directory = web)
+│   ├── app/api/mcp         # the public MCP endpoint (/mcp), Streamable HTTP
 │   ├── app/api/chat        # SSE: runs the Bedrock agent loop
 │   ├── app/api/tools       # direct MCP calls for the live panels
 │   ├── app/api/status      # MCP + Bedrock configuration status
 │   ├── lib/agent.ts        # Bedrock (AnthropicBedrockMantle) multi-step tool loop
-│   ├── lib/mcp.ts          # MCP client (Streamable HTTP)
+│   ├── lib/mcp.ts          # MCP client: in-process transport, or Streamable HTTP via RANUS_MCP_URL
+│   ├── lib/access.ts       # optional access code for public deployments
 │   └── components/         # chat, tool cards, wallet & market panels, voice
 └── docs/
     ├── DEMO_SCRIPT.md

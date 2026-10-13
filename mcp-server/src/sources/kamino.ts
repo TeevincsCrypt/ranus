@@ -7,10 +7,10 @@ import {
   type KaminoObligation,
   type KaminoReserve,
 } from "@kamino-finance/klend-sdk";
-import { config } from "../config.js";
-import { cached } from "../lib/cache.js";
-import { UpstreamError } from "../lib/http.js";
-import { rpc } from "./solana.js";
+import { config } from "../config";
+import { cached } from "../lib/cache";
+import { UpstreamError } from "../lib/http";
+import { rpc } from "./solana";
 
 /**
  * Kamino Lend data, read directly from Solana mainnet with Kamino's official SDK

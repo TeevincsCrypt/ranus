@@ -1,14 +1,14 @@
-import { errorMessage, pct, round, usd } from "../lib/format.js";
+import { errorMessage, pct, round, usd } from "../lib/format";
 import {
   DEFILLAMA_SOURCE,
   getSolanaLstPools,
   getSolanaStablecoinPools,
   getUsdyPool,
   poolUrl,
-} from "./defillama.js";
-import { getPrices, getTokenizedStocks, JUPITER_SOURCE } from "./jupiter.js";
-import { getKaminoMarketSnapshot, KAMINO_SOURCE, pickReserve, type KaminoReserveSnapshot } from "./kamino.js";
-import { SOL_MINT, TOKENIZED_TREASURIES, USD_STABLECOINS } from "./registry.js";
+} from "./defillama";
+import { getPrices, getTokenizedStocks, JUPITER_SOURCE } from "./jupiter";
+import { getKaminoMarketSnapshot, KAMINO_SOURCE, pickReserve, type KaminoReserveSnapshot } from "./kamino";
+import { SOL_MINT, TOKENIZED_TREASURIES, USD_STABLECOINS } from "./registry";
 
 /** Shared live-market views used by several tools. Every number comes from a live source. */
 

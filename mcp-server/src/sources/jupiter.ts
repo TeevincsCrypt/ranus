@@ -1,6 +1,6 @@
-import { config } from "../config.js";
-import { cached, RateLimiter } from "../lib/cache.js";
-import { fetchJson } from "../lib/http.js";
+import { config } from "../config";
+import { cached, RateLimiter } from "../lib/cache";
+import { fetchJson } from "../lib/http";
 
 /**
  * Jupiter APIs (https://developers.jup.ag). Endpoints and response shapes follow Jupiter's

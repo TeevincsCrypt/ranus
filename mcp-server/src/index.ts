@@ -1,10 +1,11 @@
+import "./env";
 import { timingSafeEqual } from "node:crypto";
 import cors from "cors";
 import type { NextFunction, Request, Response } from "express";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { config } from "./config.js";
-import { createRanusServer, SERVER_INFO } from "./server.js";
+import { config } from "./config";
+import { createRanusServer, SERVER_INFO } from "./server";
 
 const app = createMcpExpressApp({ host: config.host });
 

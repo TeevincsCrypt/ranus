@@ -1,22 +1,53 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { createRanusServer } from "ranus-mcp-server";
 
-export const MCP_URL =
-  process.env.RANUS_MCP_URL ?? `http://${process.env.RANUS_MCP_HOST ?? "127.0.0.1"}:${process.env.RANUS_MCP_PORT ?? "8787"}/mcp`;
+/**
+ * How the agent and UI panels reach the RANUS MCP server:
+ * - default: in-process — the same McpServer this app serves at /mcp, over an in-memory MCP transport
+ *   (no self-HTTP hop, so it works behind Vercel deployment protection and on cold starts);
+ * - RANUS_MCP_URL set: a remote MCP server over Streamable HTTP (e.g. the standalone server, or
+ *   another deployment's /mcp).
+ */
+const REMOTE_URL = process.env.RANUS_MCP_URL?.trim() || null;
 
-/** Opens an MCP client session to the RANUS server over Streamable HTTP. */
-export async function connectMcp(): Promise<Client> {
+export interface McpConnection {
+  client: Client;
+  mode: "in-process" | "streamable-http";
+  endpoint: string;
+  close: () => Promise<void>;
+}
+
+export async function connectMcp(): Promise<McpConnection> {
+  const client = new Client({ name: "ranus-web-agent", version: "1.0.0" });
+
+  if (!REMOTE_URL) {
+    const server = createRanusServer();
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    return {
+      client,
+      mode: "in-process",
+      endpoint: "/mcp",
+      close: async () => {
+        await client.close().catch(() => undefined);
+        await server.close().catch(() => undefined);
+      },
+    };
+  }
+
   const headers: Record<string, string> = {};
   if (process.env.RANUS_MCP_TOKEN) headers.Authorization = `Bearer ${process.env.RANUS_MCP_TOKEN}`;
-  const client = new Client({ name: "ranus-web-agent", version: "1.0.0" });
   try {
-    await client.connect(new StreamableHTTPClientTransport(new URL(MCP_URL), { requestInit: { headers } }));
+    await client.connect(new StreamableHTTPClientTransport(new URL(REMOTE_URL), { requestInit: { headers } }));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Cannot reach the RANUS MCP server at ${MCP_URL} (${message}). Is \`npm run dev\` running?`);
+    throw new Error(`Cannot reach the RANUS MCP server at ${REMOTE_URL} (${message}).`);
   }
-  return client;
+  return { client, mode: "streamable-http", endpoint: REMOTE_URL, close: () => client.close().catch(() => undefined) };
 }
 
 export interface McpToolOutcome {

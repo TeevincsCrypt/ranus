@@ -6,9 +6,9 @@ import {
   isAddress,
   type Address,
 } from "@solana/kit";
-import { config } from "../config.js";
-import { cached } from "../lib/cache.js";
-import { UpstreamError } from "../lib/http.js";
+import { config } from "../config";
+import { cached } from "../lib/cache";
+import { UpstreamError } from "../lib/http";
 
 export const rpc = createSolanaRpc(config.solanaRpcUrl);
 

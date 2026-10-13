@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { errorMessage, pct, round, tokenAmount, usd } from "../lib/format.js";
-import { getKaminoMarketSnapshot, KAMINO_SOURCE, pickReserve } from "../sources/kamino.js";
-import { getDollarYields, getSolSnapshot, getStockQuotes, getTokenizedTreasuries } from "../sources/markets.js";
-import { buildPortfolio, type Portfolio } from "../sources/portfolio.js";
-import { SOL_MINT, USDC_MINT } from "../sources/registry.js";
-import { parseWallet } from "../sources/solana.js";
-import { handle, READ_ONLY_ANNOTATIONS } from "./common.js";
+import { errorMessage, pct, round, tokenAmount, usd } from "../lib/format";
+import { getKaminoMarketSnapshot, KAMINO_SOURCE, pickReserve } from "../sources/kamino";
+import { getDollarYields, getSolSnapshot, getStockQuotes, getTokenizedTreasuries } from "../sources/markets";
+import { buildPortfolio, type Portfolio } from "../sources/portfolio";
+import { SOL_MINT, USDC_MINT } from "../sources/registry";
+import { parseWallet } from "../sources/solana";
+import { handle, READ_ONLY_ANNOTATIONS } from "./common";
 
 const CONCEPTS = [
   "apy_vs_apr",

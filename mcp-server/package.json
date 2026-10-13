@@ -2,7 +2,7 @@
   "name": "ranus-mcp-server",
   "version": "1.0.0",
   "private": true,
-  "description": "RANUS MCP server (Streamable HTTP) exposing real-data Solana dollar & asset intelligence tools",
+  "description": "RANUS MCP server: real-data Solana dollar & asset intelligence tools. Served by the Next.js app at /mcp, or standalone over Streamable HTTP.",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -29,5 +29,9 @@
     "@types/node": "^22.18.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
-  }
+  },
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "types": "./src/server.ts"
 }

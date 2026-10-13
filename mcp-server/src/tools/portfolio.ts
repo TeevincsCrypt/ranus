@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { pct, tokenAmount, usd } from "../lib/format.js";
-import { getDollarYields, getSolSnapshot, getStockQuotes, getTokenizedTreasuries } from "../sources/markets.js";
-import { buildPortfolio } from "../sources/portfolio.js";
-import { parseWallet } from "../sources/solana.js";
-import { handle, READ_ONLY_ANNOTATIONS, walletSchema } from "./common.js";
+import { pct, tokenAmount, usd } from "../lib/format";
+import { getDollarYields, getSolSnapshot, getStockQuotes, getTokenizedTreasuries } from "../sources/markets";
+import { buildPortfolio } from "../sources/portfolio";
+import { parseWallet } from "../sources/solana";
+import { handle, READ_ONLY_ANNOTATIONS, walletSchema } from "./common";
 
 export function registerPortfolioTools(server: McpServer) {
   server.registerTool(

@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { errorMessage, pct, round, tokenAmount, usd } from "../lib/format.js";
-import { getKaminoMarketSnapshot, pickReserve, type KaminoMarketSnapshot, type KaminoObligationSnapshot } from "../sources/kamino.js";
-import { buildPortfolio, type Portfolio } from "../sources/portfolio.js";
-import { SOL_MINT, USDC_MINT, USD_STABLECOINS } from "../sources/registry.js";
-import { parseWallet } from "../sources/solana.js";
-import { handle, READ_ONLY_ANNOTATIONS, walletSchema } from "./common.js";
+import { errorMessage, pct, round, tokenAmount, usd } from "../lib/format";
+import { getKaminoMarketSnapshot, pickReserve, type KaminoMarketSnapshot, type KaminoObligationSnapshot } from "../sources/kamino";
+import { buildPortfolio, type Portfolio } from "../sources/portfolio";
+import { SOL_MINT, USDC_MINT, USD_STABLECOINS } from "../sources/registry";
+import { parseWallet } from "../sources/solana";
+import { handle, READ_ONLY_ANNOTATIONS, walletSchema } from "./common";
 
 type Severity = "high" | "medium" | "low" | "info";
 
