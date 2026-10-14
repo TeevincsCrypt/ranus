@@ -1,0 +1,22 @@
+{
+  "name": "ranus",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RANUS \u2014 Autonomous Dollar & Asset Intelligence Agent (MCP server + Amazon Bedrock agent + Alexa+-style web client)",
+  "license": "MIT",
+  "workspaces": [
+    "mcp-server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "start": "npm run start -w web",
+    "mcp:standalone": "npm run start -w mcp-server",
+    "typecheck": "npm run typecheck -w mcp-server && npm run typecheck -w web",
+    "smoke": "npm run smoke -w mcp-server --"
+  }
+}
