@@ -118,7 +118,8 @@ The MCP tools need **no keys at all** — the wallet panel and live-yields panel
 
 RANUS deploys to Vercel as **one project**: the UI, the Bedrock agent (`/api/chat`, streaming) and the public MCP endpoint (`/mcp`) all run as Vercel Functions.
 
-1. **Import the repo** in Vercel and set **Root Directory = `web`**. Leave the framework (Next.js) and the build/install commands at their defaults — npm workspaces install from the repo root, and *Include files outside the Root Directory* (on by default) lets the build compile `../mcp-server`.
+1. **Import the repo** in Vercel and set **Root Directory = `web`** (Project → Settings → Build and Deployment → Root Directory). `web/vercel.json` pins the framework to Next.js, so leave the framework preset, build/install commands and output directory at their defaults — npm workspaces install from the repo root, and *Include files outside the Root Directory* (on by default) lets the build compile `../mcp-server`.
+   > If a build ends with *"No Output Directory named 'public' found"*, the Root Directory is still the repo root: set it to `web` and redeploy.
 2. **Environment variables** (Project → Settings → Environment Variables):
 
    | Variable | Required | Notes |
