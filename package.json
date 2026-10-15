@@ -9,7 +9,7 @@
     "web"
   ],
   "engines": {
-    "node": ">=20.18"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "npm run dev -w web",
