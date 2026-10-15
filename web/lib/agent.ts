@@ -9,7 +9,7 @@ import type {
   BetaToolResultBlockParam,
   BetaToolUseBlock,
 } from "@anthropic-ai/sdk/resources/beta/messages";
-import { bedrockConfig, onVercel, resolveBedrockAuth } from "./bedrock";
+import { bedrockConfig, resolveBedrockAuth } from "./bedrock";
 import type { AgentEvent } from "./events";
 import { callMcpTool, connectMcp, listMcpTools } from "./mcp";
 import { contextBlock, SYSTEM_PROMPT } from "./prompt";
@@ -59,12 +59,24 @@ function withHistoryBreakpoint(messages: BetaMessageParam[]): BetaMessageParam[]
   return [...messages.slice(0, -1), { ...last, content: blocks }];
 }
 
+/** AWS's own reason for a rejected request, plus its request ID (for AWS support). */
+function upstreamDetail(err: InstanceType<typeof Anthropic.APIError>): string {
+  const body = err.error as { message?: string; Message?: string; error?: { message?: string } } | undefined;
+  const reason = body?.error?.message ?? body?.message ?? body?.Message ?? err.message.replace(/^\d{3}\s*/, "");
+  const requestId = err.requestID ?? err.headers?.get("x-amzn-requestid") ?? null;
+  return `AWS said: "${reason}"${requestId ? ` (request ID ${requestId})` : ""}.`;
+}
+
 function friendlyError(err: unknown): string {
   if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) {
-    return `Amazon Bedrock rejected the request (${err.status}). Check your credentials (${resolveBedrockAuth().label}) and that model access for ${bedrockConfig.model} is enabled in ${bedrockConfig.region}.${onVercel ? ` ${VERCEL_AUTH_HELP}` : ""}`;
+    return (
+      `Amazon Bedrock rejected the request (${err.status}). ${upstreamDetail(err)} ` +
+      `Credentials used: ${resolveBedrockAuth().label}. The identity needs the IAM permission bedrock-mantle:CreateInference ` +
+      `(separate from bedrock:InvokeModel), and the AWS account needs access to ${bedrockConfig.model} in ${bedrockConfig.region}.`
+    );
   }
   if (err instanceof Anthropic.NotFoundError) {
-    return `Model ${bedrockConfig.model} was not found in ${bedrockConfig.region}. Set BEDROCK_MODEL_ID / BEDROCK_AWS_REGION to a model your account can use.`;
+    return `Model ${bedrockConfig.model} was not found in ${bedrockConfig.region}. ${upstreamDetail(err)} Set BEDROCK_MODEL_ID / BEDROCK_AWS_REGION to a model your account can use.`;
   }
   if (err instanceof Anthropic.RateLimitError) return "Amazon Bedrock is throttling requests right now — please try again in a moment.";
   if (err instanceof Anthropic.APIConnectionError) return `Could not reach Amazon Bedrock in ${bedrockConfig.region}: ${err.message}`;
@@ -189,6 +201,7 @@ export async function runAgent({ history, text, wallet, emit, signal }: RunAgent
     });
   } catch (err) {
     if (signal?.aborted) return;
+    console.error("[ranus] agent run failed:", err);
     emit({ type: "error", message: friendlyError(err) });
   } finally {
     await mcp.close();
