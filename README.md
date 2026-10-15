@@ -141,6 +141,8 @@ RANUS deploys to Vercel as **one project**: the UI, the Bedrock agent (`/api/cha
 
 Function limits: `/api/chat` sets `maxDuration = 300` s (the Hobby maximum; ample for a multi-step answer); `/mcp` and `/api/tools` use 60 s. Each function bundles to roughly 25 MB. The MCP endpoint is stateless, so cold starts and scaling need no session affinity.
 
+**Troubleshooting.** Every API route returns its failure as JSON, so the UI shows the real cause. A message such as `RANUS server error in /api/tools (…) — …` means the server stack itself failed (for example, a dependency missing from the function bundle). The full stack trace is in Vercel → your deployment → **Logs**; filter on `[ranus]`. A message like `Server returned HTTP 504: …` comes from the Vercel platform (here, a function timeout), not from RANUS. Errors from a live source (RPC, Jupiter, DefiLlama) name that source.
+
 ---
 
 ## API keys, AWS access and wallet connection

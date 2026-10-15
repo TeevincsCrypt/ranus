@@ -1,6 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { createRanusServer } from "ranus-mcp-server";
+import { describeError } from "@/lib/errors";
 
 /**
  * The RANUS MCP server over Streamable HTTP, hosted by this Next.js app (and on Vercel).
@@ -33,9 +32,16 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return jsonRpcError(401, -32001, "Unauthorized");
-  const server = createRanusServer();
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+  const closers: Array<() => Promise<void>> = [];
   try {
+    // Loaded per request so a failure to load the MCP/Solana stack is reported, not an empty 500.
+    const [{ WebStandardStreamableHTTPServerTransport }, { createRanusServer }] = await Promise.all([
+      import("@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"),
+      import("ranus-mcp-server"),
+    ]);
+    const server = createRanusServer();
+    const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    closers.push(() => transport.close(), () => server.close());
     await server.connect(transport);
     const res = await transport.handleRequest(req);
     const headers = new Headers(res.headers);
@@ -45,10 +51,9 @@ export async function POST(req: Request) {
     return new Response(body, { status: res.status, headers });
   } catch (err) {
     console.error("[ranus-mcp] request failed:", err);
-    return jsonRpcError(500, -32603, "Internal server error");
+    return jsonRpcError(500, -32603, `Internal server error: ${describeError(err)}`);
   } finally {
-    await transport.close().catch(() => undefined);
-    await server.close().catch(() => undefined);
+    for (const close of closers) await close().catch(() => undefined);
   }
 }
 

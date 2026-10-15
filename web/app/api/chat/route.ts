@@ -1,6 +1,6 @@
 import type { BetaMessageParam } from "@anthropic-ai/sdk/resources/beta/messages";
 import { hasAccess } from "@/lib/access";
-import { runAgent } from "@/lib/agent";
+import { serverError } from "@/lib/errors";
 import type { AgentEvent } from "@/lib/events";
 
 export const runtime = "nodejs";
@@ -19,6 +19,14 @@ export async function POST(req: Request) {
   const text = body.text?.trim();
   if (!text) return Response.json({ error: "Missing `text`." }, { status: 400 });
   if (text.length > 4000) return Response.json({ error: "Message is too long." }, { status: 413 });
+
+  // Loaded here so a failure to load the Bedrock/MCP stack is reported as JSON instead of an empty 500.
+  let runAgent: (typeof import("@/lib/agent"))["runAgent"];
+  try {
+    ({ runAgent } = await import("@/lib/agent"));
+  } catch (err) {
+    return serverError("/api/chat", err);
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
