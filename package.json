@@ -18,5 +18,8 @@
     "mcp:standalone": "npm run start -w mcp-server",
     "typecheck": "npm run typecheck -w mcp-server && npm run typecheck -w web",
     "smoke": "npm run smoke -w mcp-server --"
+  },
+  "overrides": {
+    "rpc-websockets": "9.3.8"
   }
 }

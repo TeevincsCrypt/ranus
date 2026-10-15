@@ -56,6 +56,7 @@ export function RanusApp() {
   const [statusError, setStatusError] = useState<string | null>(null);
   const [accessCode, setAccessCode] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState("");
+  const [codeRejected, setCodeRejected] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sendRef = useRef<(text: string) => void>(() => undefined);
@@ -175,7 +176,10 @@ export function RanusApp() {
         });
         if (!res.ok || !res.body) {
           const problem = await readApiError(res);
-          if (problem.code === "access_denied") saveAccessCode(null);
+          if (problem.code === "access_denied") {
+            saveAccessCode(null);
+            setCodeRejected(true);
+          }
           throw new Error(problem.message);
         }
         const reader = res.body.getReader();
@@ -219,7 +223,7 @@ export function RanusApp() {
     setHistory([]);
   }
 
-  const needsCode = Boolean(status?.accessCodeRequired && !accessCode);
+  const needsCode = Boolean((status?.accessCodeRequired || codeRejected) && !accessCode);
   const orbState = speech.listening ? "listening" : busy ? "thinking" : speech.speaking ? "speaking" : "idle";
 
   return (
