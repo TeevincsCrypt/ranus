@@ -155,11 +155,18 @@ All configuration lives in one `.env` at the repo root (see [`.env.example`](.en
 2. Authenticate with **one** of (checked in this order):
    - **Bedrock bearer token** — mint one with AWS's `aws-bedrock-token-generator` and set `AWS_BEARER_TOKEN_BEDROCK`.
    - **Vercel OIDC role** — `RANUS_AWS_ROLE_ARN` (Vercel deployments only; see [Deploy on Vercel](#deploy-on-vercel)).
-   - **IAM keys under RANUS names** — `RANUS_AWS_ACCESS_KEY_ID` / `RANUS_AWS_SECRET_ACCESS_KEY` (+ `RANUS_AWS_SESSION_TOKEN`) for a principal allowed `bedrock-mantle:CreateInference` on the model. Works everywhere, including Vercel.
+   - **IAM keys under RANUS names** — `RANUS_AWS_ACCESS_KEY_ID` / `RANUS_AWS_SECRET_ACCESS_KEY` (+ `RANUS_AWS_SESSION_TOKEN`) for a principal allowed `bedrock-mantle:CreateInference` on the model. Works everywhere, including Vercel. The Claude Messages endpoint is its own IAM service (`bedrock-mantle`), so `AmazonBedrockFullAccess` (`bedrock:*`) alone is not enough; add an inline policy such as:
+
+     ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [{ "Effect": "Allow", "Action": "bedrock-mantle:CreateInference", "Resource": "*" }]
+     }
+     ```
    - **Local only:** standard `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, `AWS_PROFILE`/SSO, or the default AWS credential chain.
 3. Set `BEDROCK_AWS_REGION` (default: `AWS_REGION`, else `us-east-1`; Claude in Amazon Bedrock is available in many regions).
 
-The top bar shows the configured model/region and whether the MCP server is connected. Auth or model-access problems are shown in the chat with a precise fix.
+The top bar shows the configured model/region and whether the MCP server is connected. Auth or model-access problems are shown in the chat with AWS's own reason and request ID (for an AWS support case), plus the likely fix.
 
 ### Live data sources (no keys required)
 

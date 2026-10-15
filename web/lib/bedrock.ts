@@ -8,7 +8,7 @@ import type { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 type MantleOptions = NonNullable<ConstructorParameters<typeof AnthropicBedrockMantle>[0]>;
 
-export const onVercel = Boolean(process.env.VERCEL);
+const onVercel = Boolean(process.env.VERCEL);
 
 export const bedrockConfig = {
   // Vercel presets AWS_REGION to the function's own region, so BEDROCK_AWS_REGION wins when set.
