@@ -1,12 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -2 112 112">
   <defs>
-    <radialGradient id="g" cx="35%" cy="30%" r="75%">
-      <stop offset="0" stop-color="#a5f3fc"/>
-      <stop offset="0.45" stop-color="#22d3ee"/>
-      <stop offset="1" stop-color="#4f46e5"/>
-    </radialGradient>
+    <linearGradient id="f" x1="10" y1="96" x2="92" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2a5296"/><stop offset="0.5" stop-color="#3b86c5"/><stop offset="1" stop-color="#56c8ee"/>
+    </linearGradient>
+    <linearGradient id="r" x1="10" y1="96" x2="92" y2="8" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4c8fd0"/><stop offset="1" stop-color="#a8eefc"/>
+    </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="16" fill="#070b14"/>
-  <circle cx="32" cy="32" r="18" fill="none" stroke="url(#g)" stroke-width="6"/>
-  <circle cx="32" cy="32" r="6" fill="url(#g)"/>
+  <g fill="none" stroke-width="19" stroke-linejoin="round">
+    <g stroke="#1a1462"><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(0.4 1)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(0.8 2)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(1.2 3)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(1.6 4)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(2.0 5)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(2.4 6)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(2.8 7)"/><path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" transform="translate(3.2 8)"/></g>
+    <path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" stroke="url(#r)"/>
+    <path d="M12 93V34A23 23 0 0 1 35 11H67C83 11 93 21 93 33C93 46 83 55 68 55H54C46 55 41 61 41 69C41 79 51 85 70 85H91" stroke="url(#f)" stroke-width="15"/>
+  </g>
 </svg>
