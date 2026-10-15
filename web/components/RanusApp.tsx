@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { AgentEvent, ToolCallView } from "@/lib/events";
 import { shortAddress, spokenSummary } from "@/lib/format";
+import { readApiError, readApiJson } from "@/lib/response";
 import { useSpeech } from "@/lib/useSpeech";
 import { MarketPanel } from "./MarketPanel";
 import { ToolCard } from "./ToolCard";
@@ -50,6 +51,7 @@ export function RanusApp() {
   const [busy, setBusy] = useState(false);
   const [speakReplies, setSpeakReplies] = useState(true);
   const [status, setStatus] = useState<Status | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [accessCode, setAccessCode] = useState<string | null>(null);
   const [codeInput, setCodeInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
@@ -67,9 +69,9 @@ export function RanusApp() {
       // Storage unavailable: start without a remembered wallet.
     }
     fetch("/api/status")
-      .then((r) => r.json())
+      .then((r) => readApiJson<Status>(r))
       .then(setStatus)
-      .catch(() => setStatus(null));
+      .catch((err: unknown) => setStatusError(err instanceof Error ? err.message : String(err)));
   }, []);
 
   const changeWallet = useCallback((address: string | null) => {
@@ -170,9 +172,9 @@ export function RanusApp() {
           signal: controller.signal,
         });
         if (!res.ok || !res.body) {
-          const body = await res.json().catch(() => ({}));
-          if (body.code === "access_denied") saveAccessCode(null);
-          throw new Error(body.error ?? `HTTP ${res.status}`);
+          const problem = await readApiError(res);
+          if (problem.code === "access_denied") saveAccessCode(null);
+          throw new Error(problem.message);
         }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -232,10 +234,10 @@ export function RanusApp() {
         </div>
         <div className="pills">
           <span
-            className={`pill ${status?.mcp.ok ? "ok" : status ? "bad" : ""}`}
-            title={status?.mcp.error ?? `${status?.mcp.mode ?? ""} · public endpoint: /mcp`}
+            className={`pill ${status?.mcp.ok ? "ok" : status || statusError ? "bad" : ""}`}
+            title={statusError ?? status?.mcp.error ?? `${status?.mcp.mode ?? ""} · public endpoint: /mcp`}
           >
-            MCP {status ? (status.mcp.ok ? `· ${status.mcp.tools.length} tools` : "· offline") : "· …"}
+            MCP {status ? (status.mcp.ok ? `· ${status.mcp.tools.length} tools` : "· offline") : statusError ? "· error" : "· …"}
           </span>
           <span
             className={`pill ${status && !status.bedrock.configured ? "bad" : ""}`}
@@ -262,6 +264,9 @@ export function RanusApp() {
           <div className="messages" ref={scrollRef}>
             {messages.length === 0 && (
               <div className="welcome">
+                {(statusError || (status && !status.mcp.ok)) && (
+                  <div className="error-line">Server problem: {statusError ?? status?.mcp.error}</div>
+                )}
                 <div className={`orb ${orbState}`} aria-hidden>
                   <span />
                 </div>

@@ -3,6 +3,7 @@
 import type { Wallet } from "@wallet-standard/base";
 import { useCallback, useEffect, useState } from "react";
 import { fmtAmount, fmtPct, fmtUsd, shortAddress, timeAgo } from "@/lib/format";
+import { readApiJson } from "@/lib/response";
 import { connectWallet, disconnectWallet, listSolanaWallets, looksLikeSolanaAddress, onWalletsChanged } from "@/lib/wallet";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -23,9 +24,8 @@ export async function callPanelTool(name: string, args: Record<string, unknown>)
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, arguments: args }),
   });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
-  return body.result;
+  const body = await readApiJson<{ result: unknown }>(res);
+  return body.result as any;
 }
 
 export function WalletPanel({ wallet, onWalletChange }: { wallet: string | null; onWalletChange: (address: string | null) => void }) {
