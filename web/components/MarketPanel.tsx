@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fmtPct, fmtUsd, timeAgo } from "@/lib/format";
-import { callPanelTool } from "./WalletPanel";
+import { callPanelTool } from "@/lib/tools";
+import { CoinArt } from "./brand/Art";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Snapshot = any;
@@ -41,7 +42,8 @@ export function MarketPanel() {
   ];
 
   return (
-    <section className="panel">
+    <section className="panel panel-yellow">
+      <CoinArt className="panel-art" size={64} />
       <div className="panel-head">
         <h2>Live dollar yields</h2>
         <button className="btn-link" onClick={() => void load()} disabled={loading}>

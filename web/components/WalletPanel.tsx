@@ -3,7 +3,8 @@
 import type { Wallet } from "@wallet-standard/base";
 import { useCallback, useEffect, useState } from "react";
 import { fmtAmount, fmtPct, fmtUsd, shortAddress, timeAgo } from "@/lib/format";
-import { readApiJson } from "@/lib/response";
+import { callPanelTool } from "@/lib/tools";
+import { PieArt } from "./brand/Art";
 import { connectWallet, disconnectWallet, listSolanaWallets, looksLikeSolanaAddress, onWalletsChanged } from "@/lib/wallet";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -17,16 +18,6 @@ const CLASS_COLORS: Record<string, string> = {
   liquid_staked_sol: "var(--c-lst)",
   other: "var(--c-other)",
 };
-
-export async function callPanelTool(name: string, args: Record<string, unknown>) {
-  const res = await fetch("/api/tools", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, arguments: args }),
-  });
-  const body = await readApiJson<{ result: unknown }>(res);
-  return body.result as any;
-}
 
 export function WalletPanel({ wallet, onWalletChange }: { wallet: string | null; onWalletChange: (address: string | null) => void }) {
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -89,7 +80,8 @@ export function WalletPanel({ wallet, onWalletChange }: { wallet: string | null;
 
   if (!wallet) {
     return (
-      <section className="panel">
+      <section className="panel panel-pink">
+        <PieArt className="panel-art" size={64} />
         <h2>Your wallet</h2>
         <p className="panel-hint">Connect read-only or paste any public Solana address. RANUS never asks for keys or signatures.</p>
         <div className="wallet-buttons">
@@ -122,7 +114,8 @@ export function WalletPanel({ wallet, onWalletChange }: { wallet: string | null;
   }
 
   return (
-    <section className="panel">
+    <section className="panel panel-pink">
+      <PieArt className="panel-art" size={64} />
       <div className="panel-head">
         <h2>Your wallet</h2>
         <div className="panel-actions">

@@ -99,7 +99,7 @@ cp .env.example .env        # then fill in AWS auth (see next section)
 npm run dev                 # web app on :3000, MCP server at http://localhost:3000/mcp
 ```
 
-Open **http://localhost:3000**, connect a wallet or paste a Solana address, and ask a question.
+Open **http://localhost:3000** for the landing page (live numbers from the MCP server), then **http://localhost:3000/app** to connect a wallet or paste a Solana address and ask a question.
 
 | Command | What it does |
 |---|---|
@@ -133,7 +133,7 @@ RANUS deploys to Vercel as **one project**: the UI, the Bedrock agent (`/api/cha
    | `RANUS_ACCESS_CODE` | recommended for public URLs | When set, chatting requires this code (the UI asks once). Live panels and `/mcp` stay open. |
    | `RANUS_MCP_TOKEN` | optional | Requires `Authorization: Bearer <token>` on `/mcp`. |
 
-3. **Deploy.** Open the deployment, check the top bar (**MCP · 7 tools**, **Amazon Bedrock · model · region**), then verify the MCP endpoint from your machine:
+3. **Deploy.** Open `/app` on the deployment, check the top bar (**MCP · 7 tools**, **Amazon Bedrock · model · region**), then verify the MCP endpoint from your machine:
 
    ```bash
    RANUS_MCP_URL=https://<your-app>.vercel.app/mcp npm run smoke -- <WALLET>
@@ -244,9 +244,12 @@ Amazon Bedrock powers all of RANUS's reasoning and tool calling (`web/lib/agent.
 
 `web/` — Next.js 16 (App Router) + React 19. The Alexa+ track explicitly allows a web app that simulates the Alexa+ client; RANUS's is voice-first:
 
+- **Two pages:** `/` is the landing page (the tools as a card carousel, four live numbers fetched through `get_market_snapshot` when the page opens, and this deployment's MCP endpoint); `/app` is the assistant.
+
 - **Voice in/out:** push-to-talk speech recognition and spoken replies (Web Speech API; best in Chrome/Edge). Answers start with a one- or two-sentence spoken summary, followed by details.
 - **Visible tool use:** every MCP call appears as a card — tool name, arguments, latency, data age, a compact visualization (allocation bars, risk findings, borrow scenarios, quote checks) and the raw live JSON.
 - **Live side panels:** the wallet panel and the "live dollar yields" panel call MCP tools directly (no LLM) and refresh on demand / every minute.
+- **Design:** white paper, heavy Inter Tight type, candy-colored cards and the 3D "R" mark, drawn as SVG (`web/components/brand/`), so nothing is a raster asset. Each tool has its own color and illustration, shared by the landing cards and the chat's tool cards (`web/lib/brand.ts`).
 - Read-only by design, responsive down to phone width, keyboard accessible, reduced-motion aware.
 
 ---
@@ -299,7 +302,7 @@ ranus/
 │       ├── tools/          # the 7 MCP tools
 │       ├── lib/            # fetch w/ retries, TTL cache + rate limiter, formatting
 │       └── scripts/        # smoke test + single-tool CLI
-├── web/                    # Next.js app (deploy this on Vercel, Root Directory = web)
+├── web/                    # Next.js app (deployed on Vercel from the repo root or web/)
 │   ├── app/api/mcp         # the public MCP endpoint (/mcp), Streamable HTTP
 │   ├── app/api/chat        # SSE: runs the Bedrock agent loop
 │   ├── app/api/tools       # direct MCP calls for the live panels
@@ -307,7 +310,8 @@ ranus/
 │   ├── lib/agent.ts        # Bedrock (AnthropicBedrockMantle) multi-step tool loop
 │   ├── lib/mcp.ts          # MCP client: in-process transport, or Streamable HTTP via RANUS_MCP_URL
 │   ├── lib/access.ts       # optional access code for public deployments
-│   └── components/         # chat, tool cards, wallet & market panels, voice
+│   ├── app/page.tsx        # landing page (/); app/app/page.tsx is the assistant (/app)
+│   └── components/         # chat, tool cards, wallet & market panels, voice; brand/ (SVG logo + art), landing/
 └── docs/
     ├── DEMO_SCRIPT.md
     └── FRICTION_LOG.md

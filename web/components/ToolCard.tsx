@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { ToolCallView } from "@/lib/events";
+import { TOOL_THEME_BY_NAME } from "@/lib/brand";
 import { fmtAmount, fmtPct, fmtUsd, timeAgo } from "@/lib/format";
+import { ART } from "./brand/Art";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Data = any;
@@ -234,13 +236,20 @@ export function ToolCard({ call }: { call: ToolCallView }) {
   const Renderer = RENDERERS[call.name];
   const data = call.result as Data;
   const asOf = data && typeof data === "object" ? data.asOf : undefined;
+  const theme = TOOL_THEME_BY_NAME[call.name];
+  const Art = theme ? ART[theme.art] : null;
   return (
-    <div className={`tool-card ${call.status}`}>
+    <div className={`tool-card ${call.status}`} style={{ "--tool-bg": theme?.bg ?? "var(--pill)" } as CSSProperties}>
       <div className="tool-head">
-        <span className={`dot ${call.status}`} aria-hidden />
-        <span className="tool-label">{meta.label}</span>
-        <code className="tool-name">{call.name}</code>
+        <span className="tool-icon" aria-hidden>
+          {Art && <Art size={30} />}
+        </span>
+        <span className="tool-title">
+          <span className="tool-label">{meta.label}</span>
+          <code className="tool-name">{call.name}</code>
+        </span>
         <span className="tool-meta">
+          <span className={`dot ${call.status}`} aria-hidden />
           {call.status === "running" ? "calling…" : `${call.durationMs ?? 0} ms`}
           {asOf ? ` · ${timeAgo(asOf)}` : ""}
         </span>

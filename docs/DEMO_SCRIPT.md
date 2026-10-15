@@ -7,7 +7,7 @@
 
 ### 0:00 – 0:15 · Hook
 
-**Screen:** RANUS home — the voice orb, the live "dollar yields" panel already showing Kamino rates with a slot number.
+**Screen:** The RANUS landing page — "MAKE DOLLARS WORK!", the tool cards, then scroll to the four live numbers (fetched through the MCP server as the page opened). Click **Try it** to open `/app`: the R mark and the live "dollar yields" panel already showing Kamino rates with a slot number.
 
 **Voice-over:**
 > "Millions of people in emerging markets hold digital dollars to escape inflation — but they're left asking: is my money safe, is it earning anything, and what should I do next? This is RANUS, an Alexa+-style agent that answers those questions with real, live data."

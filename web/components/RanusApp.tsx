@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,6 +8,7 @@ import type { AgentEvent, ToolCallView } from "@/lib/events";
 import { shortAddress, spokenSummary } from "@/lib/format";
 import { readApiError, readApiJson } from "@/lib/response";
 import { useSpeech } from "@/lib/useSpeech";
+import { RanusLogo, RanusMark } from "./brand/Logo";
 import { MarketPanel } from "./MarketPanel";
 import { ToolCard } from "./ToolCard";
 import { WalletPanel } from "./WalletPanel";
@@ -223,15 +225,10 @@ export function RanusApp() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="logo" aria-hidden>
-            <span />
-          </span>
-          <div>
-            <h1>RANUS</h1>
-            <p>Dollar &amp; Asset Intelligence · Alexa+ client</p>
-          </div>
-        </div>
+        <Link href="/" className="brand" aria-label="RANUS home">
+          <RanusLogo size={34} />
+          <span className="brand-tag">Dollar &amp; asset intelligence · Alexa+ client</span>
+        </Link>
         <div className="pills">
           <span
             className={`pill ${status?.mcp.ok ? "ok" : status || statusError ? "bad" : ""}`}
@@ -240,7 +237,7 @@ export function RanusApp() {
             MCP {status ? (status.mcp.ok ? `· ${status.mcp.tools.length} tools` : "· offline") : statusError ? "· error" : "· …"}
           </span>
           <span
-            className={`pill ${status && !status.bedrock.configured ? "bad" : ""}`}
+            className={`pill ${status ? (status.bedrock.configured ? "ok" : "bad") : ""}`}
             title={status ? `Auth: ${status.bedrock.auth} · effort ${status.bedrock.effort}` : undefined}
           >
             Amazon Bedrock{" "}
@@ -267,8 +264,8 @@ export function RanusApp() {
                 {(statusError || (status && !status.mcp.ok)) && (
                   <div className="error-line">Server problem: {statusError ?? status?.mcp.error}</div>
                 )}
-                <div className={`orb ${orbState}`} aria-hidden>
-                  <span />
+                <div className={`ranus-orb ${orbState}`} aria-hidden>
+                  <RanusMark size={132} />
                 </div>
                 <h2>Ask RANUS about your money</h2>
                 <p>
@@ -293,8 +290,8 @@ export function RanusApp() {
                 </div>
               ) : (
                 <div className="msg assistant" key={m.id}>
-                  <div className={`avatar orb mini ${m.streaming ? "thinking" : "idle"}`} aria-hidden>
-                    <span />
+                  <div className={`avatar ${m.streaming ? "thinking" : ""}`} aria-hidden>
+                    <RanusMark size={30} />
                   </div>
                   <div className="assistant-body">
                     {m.thinking && (
@@ -403,7 +400,7 @@ export function RanusApp() {
               </button>
             ) : (
               <button type="submit" className="btn send" disabled={!input.trim() || needsCode}>
-                Ask
+                Ask <span aria-hidden>↗</span>
               </button>
             )}
           </form>
