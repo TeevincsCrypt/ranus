@@ -240,6 +240,7 @@ Amazon Bedrock powers all of RANUS's reasoning and tool calling (`web/lib/agent.
 - **Multi-step agent loop:** Claude decides which tools to call; RANUS executes all of a step's `tool_use` blocks **in parallel** over MCP, returns every `tool_result` in one message, and repeats (up to `RANUS_MAX_STEPS`, with a forced final answer at the cap).
 - **Adaptive thinking** with `display: "summarized"` — the reasoning summary streams into the UI so judges can see the plan.
 - **Effort control** via `output_config.effort` (`RANUS_EFFORT`, default `medium`) to trade depth vs. latency for voice.
+- **Quota-aware output cap:** `max_tokens` comes from `RANUS_MAX_TOKENS` (default 16,000). Bedrock reserves input + `max_tokens` against the tokens-per-minute quota when a call starts and counts Claude output tokens at a higher burndown rate, so accounts with small quotas should use `RANUS_MAX_TOKENS=4000` and `RANUS_EFFORT=low`.
 - **Streaming** (SSE) end-to-end: Bedrock → Next.js route → browser.
 - **Prompt caching** with explicit cache breakpoints (after the stable tools + system prompt, and on the newest message) so each agent step re-reads the conversation from cache.
 - **Refusal fallback:** the SDK's client-side `betaRefusalFallbackMiddleware` retries on `anthropic.claude-opus-4-8` if the primary model declines on policy grounds (`BEDROCK_FALLBACK_MODEL_ID`, `none` to disable).

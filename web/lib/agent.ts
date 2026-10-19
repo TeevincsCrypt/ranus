@@ -80,7 +80,14 @@ function friendlyError(err: unknown): string {
   if (err instanceof Anthropic.NotFoundError) {
     return `Model ${bedrockConfig.model} was not found in ${bedrockConfig.region}. ${upstreamDetail(err)} Set BEDROCK_MODEL_ID / BEDROCK_AWS_REGION to a model your account can use.`;
   }
-  if (err instanceof Anthropic.RateLimitError) return "Amazon Bedrock is throttling requests right now — please try again in a moment.";
+  if (err instanceof Anthropic.RateLimitError) {
+    return (
+      `Amazon Bedrock is throttling this account (429). ${upstreamDetail(err)} ` +
+      `Check the applied tokens-per-minute and tokens-per-day quotas for ${bedrockConfig.model} in Service Quotas. ` +
+      `Bedrock reserves input + max_tokens (RANUS_MAX_TOKENS, now ${bedrockConfig.maxTokens}) per request, so on a small quota ` +
+      `set RANUS_MAX_TOKENS=4000 and RANUS_EFFORT=low.`
+    );
+  }
   if (err instanceof Anthropic.APIConnectionError) return `Could not reach Amazon Bedrock in ${bedrockConfig.region}: ${err.message}`;
   if (err instanceof Anthropic.BadRequestError && /beta/i.test(err.message)) {
     return `Amazon Bedrock rejected a beta header (${err.message}). Set BEDROCK_FALLBACK_MODEL_ID=none to turn off the client-side refusal fallback.`;
@@ -135,7 +142,7 @@ export async function runAgent({ history, text, wallet, emit, signal }: RunAgent
       const stream = getBedrock().beta.messages.stream(
         {
           model: bedrockConfig.model,
-          max_tokens: 64_000,
+          max_tokens: bedrockConfig.maxTokens,
           system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
           tools,
           ...(finalStep && { tool_choice: { type: "none" as const } }),
