@@ -18,6 +18,9 @@ export const bedrockConfig = {
   fallbackModel: process.env.BEDROCK_FALLBACK_MODEL_ID ?? "anthropic.claude-opus-4-8",
   effort: (process.env.RANUS_EFFORT ?? "medium") as Effort,
   maxSteps: Number(process.env.RANUS_MAX_STEPS ?? 10),
+  // Bedrock reserves input + max_tokens against the tokens-per-minute quota when a request starts,
+  // so a small quota needs a small value here.
+  maxTokens: Number(process.env.RANUS_MAX_TOKENS ?? 16_000),
 };
 
 interface BedrockAuth {
