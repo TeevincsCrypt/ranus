@@ -68,7 +68,7 @@ function buildStats(d: Snapshot): Stat[] {
     {
       key: "stocks",
       tone: "var(--pink)",
-      label: "Tokenized stocks listed",
+      label: "Tokenized stocks with live prices",
       value: stocks?.totalListed ? String(stocks.totalListed) : null,
       detail: stocks?.stocks?.length > 0 && (
         <>
@@ -142,5 +142,5 @@ const PLACEHOLDERS: Stat[] = [
   { key: "kamino", tone: "var(--yellow)", label: "Best stablecoin yield", value: null, detail: null, source: "Solana on-chain" },
   { key: "usdy", tone: "var(--mint)", label: "Tokenized T-bills · USDY", value: null, detail: null, source: "DefiLlama Yields · Jupiter" },
   { key: "sol", tone: "var(--blue)", label: "SOL price", value: null, detail: null, source: "Kamino oracle" },
-  { key: "stocks", tone: "var(--pink)", label: "Tokenized stocks listed", value: null, detail: null, source: "Jupiter Tokens & Price API" },
+  { key: "stocks", tone: "var(--pink)", label: "Tokenized stocks with live prices", value: null, detail: null, source: "Jupiter Tokens & Price API" },
 ];
