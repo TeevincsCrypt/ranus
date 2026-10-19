@@ -26,10 +26,12 @@ let bedrock: AnthropicBedrockMantle | null = null;
 function getBedrock(): AnthropicBedrockMantle {
   if (!bedrock) {
     const fallback = bedrockConfig.fallbackModel;
+    // A fallback to the same model would only repeat the refused request.
+    const useFallback = fallback && fallback !== "none" && fallback !== bedrockConfig.model;
     bedrock = new AnthropicBedrockMantle({
       awsRegion: bedrockConfig.region,
       ...resolveBedrockAuth().options,
-      middleware: fallback && fallback !== "none" ? [betaRefusalFallbackMiddleware([{ model: fallback }])] : [],
+      middleware: useFallback ? [betaRefusalFallbackMiddleware([{ model: fallback }])] : [],
     });
   }
   return bedrock;
