@@ -343,6 +343,8 @@ What worked well and what we'd improve, from building RANUS:
 - 👍 Bearer-token auth makes local hackathon setups much easier than IAM wiring.
 - 🔧 Model access differs per model (Opus 5.5 gated, Opus 4.8 open). A single "which models can this principal call?" API on the Mantle endpoint would let apps pick a model automatically.
 - 🔧 Docs for the legacy (`InvokeModel`/Converse) and Messages-API integrations live side-by-side; it's easy to land on the legacy page and its feature table first.
+- 🔧 A new account with Bedrock quotas applied at 0 gets "not available for this account" (Claude) or "Too many tokens per day" (Nova) on its first request. Neither mentions quotas, and the console shows the much larger defaults next to the 0. Saying "applied quota is 0" in the error would save hours.
+- 🔧 The start-of-call reservation (input + `max_tokens`) is easy to miss: an SDK-style `max_tokens: 64000` throttles every call on a 20k tokens-per-minute quota.
 
 **Model Context Protocol**
 - 👍 Stateless Streamable HTTP + zod schemas make a server that any host can use, and the same server powers both the agent and the UI panels.
